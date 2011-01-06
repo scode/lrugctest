@@ -41,8 +41,13 @@
           (recur (+ so-far CHUNKSIZE)
               (long new-last-display)))))))
 
+(defroutes http-routes
+  (GET "/set-size" [& args]
+    (dosync (alter global-cache #(plru/lru-resize %1 (Long/parseLong (args "size")))))))
+
 (defn -main [& args]
-  (main-loop))
+  (.start (Thread. main-loop))
+  (run-jetty http-routes {:port 9191}))
 
 
 
