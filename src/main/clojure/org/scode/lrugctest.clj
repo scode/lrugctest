@@ -16,7 +16,7 @@
 (def global-cache (ref (plru/make-lru SIZE)))
 
 (defn put-chunk
-  [lru-ref]
+  [lru-ref chunk-size]
   (loop [count 0]
     (if (< count CHUNKSIZE)
       (do
@@ -35,7 +35,7 @@
                            last-display)]
       ;(. Thread sleep SLEEPTIME)
       (let [start-time (. System currentTimeMillis)]
-        (put-chunk global-cache)
+        (put-chunk global-cache CHUNKSIZE)
         (let [elapsed (- (. System currentTimeMillis) start-time)]
           (recur (+ so-far CHUNKSIZE)
               (long new-last-display)))))))
