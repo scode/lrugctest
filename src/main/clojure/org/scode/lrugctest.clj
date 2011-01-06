@@ -18,7 +18,7 @@
 (defn put-chunk
   [lru-ref chunk-size]
   (loop [count 0]
-    (if (< count CHUNKSIZE)
+    (if (< count chunk-size)
       (do
         (dosync (alter lru-ref #(plru/lru-put %1 (rand (* SIZE FACTOR)) (str "val" (rem count 1000)))))
         (recur (+ 1 count))))))
