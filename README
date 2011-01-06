@@ -1,0 +1,31 @@
+A GC test. Maven is required. It runs a continous LRU cache test,
+simulating a 50% cache hit ratio.
+
+This needs plru which is not in maven central:
+
+  git clone git://github.com/scode/plru.git
+  (cd plru && mvn install)
+
+After that, back in this project:
+
+  mvn compile
+
+And then "mvn clojure:run" will run the test. However, a convenience
+wrapper run.sh exists which is intended to be used as such:
+
+  GCTEST_COLLECTOR=g1 JAVA_HOME=/usr/local/openjdk7 ./run.sh
+
+The collector can be 'g1', 'cms', or 'throughput'. JAVA_HOME is
+required. run.sh will make sure VM options are printed at the
+beginning of the run.
+
+Once it starts, it will listen to HTTP requests on port 9191. You can
+reset the size of the LRU cache by:
+
+  curl 'http://localhost:9191/set-size?size=1000'
+
+Or change the chunk size/sleep time used for rate limiting as such:
+
+  curl 'http://localhost:9191/set-sleep-time?sleep-time=10'
+  curl 'http://localhost:9191/set-chunk-size?chunk-size=100'
+  curl 'http://localhost:9191/rate-limit?chunk-size=100&sleep-time=10'
