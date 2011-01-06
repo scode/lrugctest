@@ -13,20 +13,19 @@
 (def DISPLAYINTERVAL 1000)
 (def SLEEPTIME 10)
 
+(def global-cache (ref (plru/make-lru SIZE)))
+
 (defn put-chunk
-  [c]
-  (loop [c c
-         count 0]
+  [lru-ref]
+  (loop [count 0]
     (if (< count CHUNKSIZE)
       (do
-        (recur (plru/lru-put c (int (rand (* SIZE FACTOR))) (str "val" (rem count 1000)))
-               (+ 1 count)))
-      c)))
+        (dosync (alter lru-ref #(plru/lru-put %1 (rand (* SIZE FACTOR)) (str "val" (rem count 1000)))))
+        (recur (+ 1 count))))))
 
 (defn main-loop
   []
   (loop [so-far 0
-         c (plru/make-lru SIZE)
          last-display (. System currentTimeMillis)]
     (let [now (. System currentTimeMillis)
           new-last-display (if (> (- now last-display) DISPLAYINTERVAL)
@@ -36,13 +35,10 @@
                            last-display)]
       ;(. Thread sleep SLEEPTIME)
       (let [start-time (. System currentTimeMillis)]
-        (let [new-c (put-chunk c)]
-          (let [elapsed (- (. System currentTimeMillis) start-time)]
-            (if (> elapsed MAXPAUSE)
-              (println "PAUSE <=: " elapsed "ms"))
-            (recur (+ so-far CHUNKSIZE)
-              new-c
-              (long new-last-display))))))))
+        (put-chunk global-cache)
+        (let [elapsed (- (. System currentTimeMillis) start-time)]
+          (recur (+ so-far CHUNKSIZE)
+              (long new-last-display)))))))
 
 (defn -main [& args]
   (main-loop))
