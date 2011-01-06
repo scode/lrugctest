@@ -28,8 +28,11 @@
          last-display (. System currentTimeMillis)]
     (let [now (. System currentTimeMillis)
           new-last-display (if (> (- now last-display) DISPLAYINTERVAL)
-                             (do
-                               (println "PUTS: " so-far)
+                             (let [lru-snap @global-cache]
+                               (println (str (:size lru-snap)
+                                             " entries, "
+                                             (* 100.0 (/ (:size lru-snap) (:max-size lru-snap)))
+                                             "% full"))
                                now)
                            last-display)]
       (if (> SLEEPTIME 0)
