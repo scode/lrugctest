@@ -6,7 +6,7 @@
         compojure.response
         ring.adapter.jetty))
 
-(def SIZE 1000)
+(def SIZE 1000000) ; default 1 million; useful for testing with a heap size around 1 gig
 (def FACTOR 2.0)
 (def CHUNKSIZE 100)
 (def DISPLAYINTERVAL 1000)
