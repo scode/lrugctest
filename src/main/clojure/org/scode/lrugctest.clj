@@ -6,21 +6,20 @@
         compojure.response
         ring.adapter.jetty))
 
-(def SIZE 1000000) ; default 1 million; useful for testing with a heap size around 1 gig
 (def FACTOR 2.0)   ; simulate 1/FACTOR cache hit ratio in lru
 (def DISPLAYINTERVAL 1000)
 
-(def global-cache (ref (plru/make-lru SIZE)))
 (def sleep-time (atom 10))
 (def chunk-size (atom 100))
-
+(def cache-size (atom 1000000))
+(def global-cache (ref (plru/make-lru @cache-size)))
 
 (defn put-chunk
   [lru-ref chunk-size]
   (loop [count 0]
     (if (< count chunk-size)
       (do
-        (dosync (alter lru-ref #(plru/lru-put %1 (rand (* SIZE FACTOR)) (str "val" (rem count 1000)))))
+        (dosync (alter lru-ref #(plru/lru-put %1 (rand (* @cache-size FACTOR)) (str "val" (rem count 1000)))))
         (recur (+ 1 count))))))
 
 (defn main-loop
@@ -59,7 +58,8 @@
               (dosync (alter global-cache #(plru/lru-resize %1 (dec cur-size))))
               (recur))
             (do
-              (dosync (alter global-cache #(plru/lru-resize %1 target-size)))
+              (dosync (alter global-cache #(plru/lru-resize %1 target-size))
+                      (swap! cache-size (constantly target-size)))
               "resized"))))))
   (GET "/set-sleep-time" [& args]
     (str (swap! sleep-time (fn [old] (Long/parseLong (args "sleep-time"))))))
