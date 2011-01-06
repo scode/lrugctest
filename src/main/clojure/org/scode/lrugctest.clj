@@ -8,11 +8,12 @@
 
 (def SIZE 1000000) ; default 1 million; useful for testing with a heap size around 1 gig
 (def FACTOR 2.0)   ; simulate 1/FACTOR cache hit ratio in lru
-(def CHUNKSIZE 100)
 (def DISPLAYINTERVAL 1000)
-(def SLEEPTIME 10)
 
 (def global-cache (ref (plru/make-lru SIZE)))
+(def sleep-time (atom 10))
+(def chunk-size (atom 100))
+
 
 (defn put-chunk
   [lru-ref chunk-size]
@@ -35,12 +36,13 @@
                                              "% full"))
                                now)
                            last-display)]
-      (if (> SLEEPTIME 0)
-        (. Thread sleep SLEEPTIME))
-      (let [start-time (. System currentTimeMillis)]
-        (put-chunk global-cache CHUNKSIZE)
+      (if (> @sleep-time 0)
+        (. Thread sleep @sleep-time))
+      (let [start-time (. System currentTimeMillis)
+            chunk-size-snap @chunk-size]
+        (put-chunk global-cache chunk-size-snap)
         (let [elapsed (- (. System currentTimeMillis) start-time)]
-          (recur (+ so-far CHUNKSIZE)
+          (recur (+ so-far chunk-size-snap)
               (long new-last-display)))))))
 
 (defroutes http-routes
