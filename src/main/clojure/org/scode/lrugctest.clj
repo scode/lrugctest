@@ -64,7 +64,10 @@
   (GET "/set-sleep-time" [& args]
     (str (swap! sleep-time (fn [old] (Long/parseLong (args "sleep-time"))))))
   (GET "/set-chunk-size" [& args]
-    (str (swap! chunk-size (fn [old] (Long/parseLong (args "chunk-size")))))))
+    (str (swap! chunk-size (fn [old] (Long/parseLong (args "chunk-size"))))))
+  (GET "/rate-limit" [& args]
+    (str [(swap! sleep-time (fn [old] (Long/parseLong (args "sleep-time"))))
+          (swap! chunk-size (fn [old] (Long/parseLong (args "chunk-size"))))])))
 
 (defn -main [& args]
   (.start (Thread. main-loop))
