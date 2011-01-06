@@ -1,6 +1,10 @@
 #!/bin/sh
 
-# Assumes a built uber-jar exists in current directory, and that JAVA_HOME is set.
+if [ -z "$JAVA_HOME" ]
+then
+    echo "JAVA_HOME must be set"
+    exit 1
+fi
 
 set -e
 
