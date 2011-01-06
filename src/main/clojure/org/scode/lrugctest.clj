@@ -62,7 +62,7 @@
               (dosync (alter global-cache #(plru/lru-resize %1 target-size)))
               "resized"))))))
   (GET "/set-sleep-time" [& args]
-    (swap! sleep-time (fn [old] (Long/parseLong (args "sleep-time"))))))
+    (str (swap! sleep-time (fn [old] (Long/parseLong (args "sleep-time")))))))
 
 (defn -main [& args]
   (.start (Thread. main-loop))
