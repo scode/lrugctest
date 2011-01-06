@@ -63,8 +63,8 @@ jvmopts () {
     then
         echo -Xloggc:$GCTEST_LOGGC
     fi
-    echo -Xms1G
-    echo -Xmx1G
+    echo -Xms2G
+    echo -Xmx2G
     echo -Xss256k
 }
 
