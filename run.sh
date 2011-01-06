@@ -68,5 +68,4 @@ jvmopts () {
     echo -Xss256k
 }
 
-mvn -Dclojure.vmargs="$(jvmopts)" clojure:run
-
+mvn -Dclojure.vmargs="$(jvmopts | tr '\n' ' ')" clojure:run
