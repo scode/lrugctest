@@ -43,7 +43,16 @@
 
 (defroutes http-routes
   (GET "/set-size" [& args]
-    (dosync (alter global-cache #(plru/lru-resize %1 (Long/parseLong (args "size")))))))
+    (let [target-size (Long/parseLong (args "size"))]
+      (loop []
+        (let [cur-size (:size @global-cache)]
+          (if (> cur-size target-size)
+            (do
+              (dosync (alter global-cache #(plru/lru-resize %1 (dec cur-size))))
+              (recur))
+            (do
+              (dosync (alter global-cache #(plru/lru-resize %1 target-size)))
+              "resized")))))))
 
 (defn -main [& args]
   (.start (Thread. main-loop))
