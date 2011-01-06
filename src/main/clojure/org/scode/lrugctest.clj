@@ -33,7 +33,8 @@
                                (println "PUTS: " so-far)
                                now)
                            last-display)]
-      ;(. Thread sleep SLEEPTIME)
+      (if (> SLEEPTIME 0)
+        (. Thread sleep SLEEPTIME))
       (let [start-time (. System currentTimeMillis)]
         (put-chunk global-cache CHUNKSIZE)
         (let [elapsed (- (. System currentTimeMillis) start-time)]
