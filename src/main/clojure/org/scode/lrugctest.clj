@@ -46,6 +46,10 @@
 (defroutes http-routes
   (GET "/set-size" [& args]
     (let [target-size (Long/parseLong (args "size"))]
+      ;; Don't resize in one go since it can be a potentially very expensive operation, and we don't
+      ;; want to do that within a dosync txn. Instead, do a txn per decrement. (This exploits the fact that
+      ;; we know that re-sizing the lru upwards is O(1), but resizing downwards is O(n) with respect to the number
+      ;; of dropped entries).
       (loop []
         (let [cur-size (:size @global-cache)]
           (if (> cur-size target-size)
