@@ -16,6 +16,8 @@ jvmopts () {
 
     echo -XX:+UnlockExperimentalVMOptions
     echo -XX:+UnlockDiagnosticVMOptions
+    echo -XX:+PrintGCApplicationConcurrentTime
+    echo -XX:+PrintGCApplicationStoppedTime
 
     #echo -Xmaxf=50
     #echo -Xminf=30
