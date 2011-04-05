@@ -49,6 +49,7 @@ jvmopts () {
         echo -XX:+UseConcMarkSweepGC
         #echo -XX:+CMSIncrementalMode
         echo -XX:+PrintGCDetails
+        echo -XX:PrintFLSStatistics=5
     elif [ "$GCTEST_COLLECTOR" = "throughput" ]
     then
         echo >/dev/null #prevent syntax error
