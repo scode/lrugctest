@@ -41,7 +41,7 @@ jvmopts () {
         #echo -XX:+G1PrintParCleanupStats
         #echo -XX:G1PolicyVerbose=1
         #echo -XX:+PrintGCDetails
-        #echo -XX:G1PrintRegionLivenessInfo=5000
+        #echo -XX:+G1PrintRegionLivenessInfo
         #echo -XX:+G1ParallelRSetUpdatingEnabled
         #echo -XX:+G1ParallelRSetScanningEnabled
     elif [ "$GCTEST_COLLECTOR" = "cms" ]
