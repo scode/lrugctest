@@ -1,12 +1,7 @@
 A GC test. Maven is required. It runs a continous LRU cache test,
 simulating a 50% cache hit ratio.
 
-This needs plru which is not in maven central:
-
-  git clone git://github.com/scode/plru.git
-  (cd plru && mvn install)
-
-After that, back in this project:
+Build it with maven:
 
   mvn compile
 
