@@ -46,6 +46,10 @@ jvmopts () {
         #echo -XX:+G1PrintRegionLivenessInfo
         #echo -XX:+G1ParallelRSetUpdatingEnabled
         #echo -XX:+G1ParallelRSetScanningEnabled
+    elif [ "$GCTEST_COLLECTOR" = "shenandoah" ]
+    then
+        echo -XX:+UseShenandoahGC
+        echo -XX:+PrintGCDetails
     elif [ "$GCTEST_COLLECTOR" = "cms" ]
     then
         echo -XX:+UseConcMarkSweepGC

@@ -10,9 +10,9 @@ wrapper run.sh exists which is intended to be used as such:
 
   GCTEST_COLLECTOR=g1 JAVA_HOME=/usr/local/openjdk7 ./run.sh
 
-The collector can be 'g1', 'cms', or 'throughput'. JAVA_HOME is
-required. run.sh will make sure VM options are printed at the
-beginning of the run.
+The collector can be 'shenandoah', 'g1', 'cms', or
+'throughput'. JAVA_HOME is required. run.sh will make sure VM options
+are printed at the beginning of the run.
 
 Once it starts, it will listen to HTTP requests on port 9191. You can
 reset the size of the LRU cache by:
