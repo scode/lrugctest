@@ -3,6 +3,14 @@ java_binary(
     srcs = ["LruGcTest.java"],
     main_class = "org.scode.lrugctest.LruGcTest",
     deps = [
-#      "//src/java/org/scode/lrugctestbazelplay/lib:greeter",
+        #      "//src/java/org/scode/lrugctestbazelplay/lib:greeter",
+    ],
+)
+
+java_library(
+    name = "lrucache",
+    srcs = ["LruCache.java"],
+    visibility = [
+        ":__subpackages__",
     ],
 )
