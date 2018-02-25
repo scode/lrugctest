@@ -1,7 +1,6 @@
 package org.scode.lrugctest;
 
 import org.junit.Test;
-import org.scode.lrugctest.LruCache;
 
 import java.util.Optional;
 
