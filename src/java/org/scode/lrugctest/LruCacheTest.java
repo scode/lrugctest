@@ -1,4 +1,4 @@
-package org.scode.lrugctest.tests;
+package org.scode.lrugctest;
 
 import org.junit.Test;
 import org.scode.lrugctest.LruCache;

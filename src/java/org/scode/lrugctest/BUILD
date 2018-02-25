@@ -14,3 +14,20 @@ java_library(
         ":__subpackages__",
     ],
 )
+
+java_library(
+    name = "lrucache-test",
+    srcs = glob(["*.java"]),
+    deps = [
+        ":lrucache",
+        "//:junit_junit",
+    ],
+)
+
+java_test(
+    name = "LruCacheTest",
+    size = "small",
+    runtime_deps = [
+        ":lrucache-test",
+    ],
+)
