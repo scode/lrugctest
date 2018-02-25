@@ -8,8 +8,10 @@ public class CacheChurner implements Runnable {
      * Number of iterations against the cache to perform per churn(). Only purpose is to allow
      * the outer loop to have expensive operations in it without significantly impacting
      * the behavior of the test.
+     *
+     * Package access for testing.
      */
-    private static final int CHURN_ITERATIONS = 1000;
+    static final int CHURN_ITERATIONS = 1000;
 
     private final int id;
     private final float targetHitRatio;
@@ -21,6 +23,9 @@ public class CacheChurner implements Runnable {
 
     private volatile boolean stopRequested = false;
 
+    private long hits;
+    private long misses;
+
     /**
      * @param id An identifier like a thread id; intended for logging.
      */
@@ -29,6 +34,8 @@ public class CacheChurner implements Runnable {
         this.size = size;
         this.targetHitRatio = targetHitRatio;
         this.cache = new LruCache(size);
+
+        // Deterministic seed is on purpose for testing purposes.
         this.random = new Random(id);
     }
 
@@ -41,6 +48,16 @@ public class CacheChurner implements Runnable {
 
     public boolean isStopRequested() {
         return this.stopRequested;
+    }
+
+    /** NOT thread-safe. For tests. */
+    long hits() {
+        return this.hits;
+    }
+
+    /** NOT thread-safe. For tests.*/
+    long misses() {
+        return this.misses;
     }
 
     @Override
@@ -71,7 +88,10 @@ public class CacheChurner implements Runnable {
             // Use [0, targetHitRatio] for keys, thus causing us to hit our target hit ratio.
             int key = this.random.nextInt((int) (this.size / this.targetHitRatio));
 
-            if (!this.cache.get(key).isPresent()) {
+            if (this.cache.get(key).isPresent()) {
+                ++this.hits;
+            } else {
+                ++this.misses;
                 this.cache.put(key, "value");
             }
         }
