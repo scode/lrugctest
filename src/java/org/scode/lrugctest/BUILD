@@ -17,7 +17,7 @@ java_library(
 
 java_library(
     name = "lrucache-test",
-    srcs = glob(["*.java"]),
+    srcs = ["LruCacheTest.java"],
     deps = [
         ":lrucache",
         "//:junit_junit",
