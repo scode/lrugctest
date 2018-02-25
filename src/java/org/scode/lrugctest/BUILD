@@ -55,3 +55,27 @@ java_test(
         ":cachechurner-test",
     ],
 )
+
+java_library(
+    name = "ratelimiter",
+    srcs = ["RateLimiter.java"],
+    deps = [
+    ],
+)
+
+java_library(
+    name = "ratelimiter-test",
+    srcs = ["RateLimiterTest.java"],
+    deps = [
+        ":ratelimiter",
+        "//:junit_junit",
+    ],
+)
+
+java_test(
+    name = "RateLimiterTest",
+    size = "small",
+    runtime_deps = [
+        ":ratelimiter-test",
+    ],
+)
