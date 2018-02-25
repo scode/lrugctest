@@ -9,9 +9,6 @@ java_binary(
 java_library(
     name = "lrucache",
     srcs = ["LruCache.java"],
-    visibility = [
-        ":__subpackages__",
-    ],
 )
 
 java_library(
