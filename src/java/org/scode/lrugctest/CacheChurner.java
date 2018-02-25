@@ -1,14 +1,79 @@
 package org.scode.lrugctest;
 
+import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+
 public class CacheChurner implements Runnable {
+    /**
+     * Number of iterations against the cache to perform per churn(). Only purpose is to allow
+     * the outer loop to have expensive operations in it without significantly impacting
+     * the behavior of the test.
+     */
+    private static final int CHURN_ITERATIONS = 1000;
+
+    private final int id;
+    private final float targetHitRatio;
+
+    private final int size;
+    private final LruCache<Integer,String> cache;
+    private final CountDownLatch countDownLatch = new CountDownLatch(1);
+    private final Random random;
+
+    private volatile boolean stopRequested = false;
+
     /**
      * @param id An identifier like a thread id; intended for logging.
      */
-    public CacheChurner(int id) {
+    public CacheChurner(int id, int size, float targetHitRatio) {
+        this.id = id;
+        this.size = size;
+        this.targetHitRatio = targetHitRatio;
+        this.cache = new LruCache(size);
+        this.random = new Random(id);
+    }
+
+    /**
+     * Request that the churner stops as soon as possible. May be called from any thread.
+     */
+    public void stop() {
+        this.stopRequested = true;
+    }
+
+    public boolean isStopRequested() {
+        return this.stopRequested;
     }
 
     @Override
     public void run() {
+        try {
+            boolean haveReportedFull = false;
 
+            while (!this.stopRequested) {
+                churn();
+
+                if (!haveReportedFull && this.cache.size() == this.size) {
+                    System.err.println("" + this.id + ": cache now full");
+                    haveReportedFull = true;
+                }
+            }
+
+            System.err.println("" + this.id + ": stop requested, exiting");
+        } finally {
+            this.countDownLatch.countDown();
+        }
+    }
+
+    /**
+     * Execute one iteration of churn. Package level access for testing purposes.
+     */
+    void churn() {
+        for (int i = 0; i < CHURN_ITERATIONS; i++) {
+            // Use [0, targetHitRatio] for keys, thus causing us to hit our target hit ratio.
+            int key = this.random.nextInt((int) (this.size / this.targetHitRatio));
+
+            if (!this.cache.get(key).isPresent()) {
+                this.cache.put(key, "value");
+            }
+        }
     }
 }

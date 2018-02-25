@@ -4,6 +4,7 @@ java_binary(
     main_class = "org.scode.lrugctest.LruGcTest",
     deps = [
         ":cachechurner",
+        ":lrucache",
         "//:argparse4j",
     ],
 )
@@ -33,6 +34,9 @@ java_test(
 java_library(
     name = "cachechurner",
     srcs = ["CacheChurner.java"],
+    deps = [
+        ":lrucache",
+    ],
 )
 
 java_library(
