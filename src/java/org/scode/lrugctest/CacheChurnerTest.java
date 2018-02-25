@@ -7,7 +7,7 @@ import static org.junit.Assert.*;
 public class CacheChurnerTest {
     @Test
     public void testHitRatio() {
-        CacheChurner c = new CacheChurner(0, 10, (float)0.5);
+        CacheChurner c = new CacheChurner(0, 10, (float)0.5, RateLimiter.unlimited());
 
         // Execute enough iterations to reasonably expect us to land within 0.1% of target
         // hit rate.

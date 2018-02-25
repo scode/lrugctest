@@ -15,6 +15,7 @@ public class CacheChurner implements Runnable {
 
     private final int id;
     private final float targetHitRatio;
+    private final RateLimiter rateLimiter;
 
     private final int size;
     private final LruCache<Integer,String> cache;
@@ -28,12 +29,15 @@ public class CacheChurner implements Runnable {
 
     /**
      * @param id An identifier like a thread id; intended for logging.
+     * @param size Size of the LRU cache in number of items.
+     * @param targetHitRatio The target hit ratio to achieve in the cache.
      */
-    public CacheChurner(int id, int size, float targetHitRatio) {
+    public CacheChurner(int id, int size, float targetHitRatio, RateLimiter rateLimiter) {
         this.id = id;
         this.size = size;
         this.targetHitRatio = targetHitRatio;
-        this.cache = new LruCache(size);
+        this.rateLimiter = rateLimiter;
+        this.cache = new LruCache<>(size);
 
         // Deterministic seed is on purpose for testing purposes.
         this.random = new Random(id);
@@ -85,6 +89,8 @@ public class CacheChurner implements Runnable {
      */
     void churn() {
         for (int i = 0; i < CHURN_ITERATIONS; i++) {
+            this.rateLimiter.waitForNext();
+
             // Use [0, targetHitRatio] for keys, thus causing us to hit our target hit ratio.
             int key = this.random.nextInt((int) (this.size / this.targetHitRatio));
 

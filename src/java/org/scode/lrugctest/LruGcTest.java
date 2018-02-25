@@ -18,6 +18,10 @@ public class LruGcTest {
                 .type(Integer.class)
                 .setDefault(1)
                 .help("Number of concurrent threads.");
+        parser.addArgument("-r", "--rate")
+                .type(Integer.class)
+                .setDefault(1000000)
+                .help("Number of cache checks per second.");
 
         Namespace ns = null;
         try {
@@ -27,7 +31,10 @@ public class LruGcTest {
             System.exit(1);
         }
 
-        final int sizePerCache = ns.getInt("size") / ns.getInt("threads");
+        final int threads = ns.getInt("threads");
+        final int sizePerCache = ns.getInt("size") / threads;
+        final long ratePerThread = ns.getInt("rate") / (long)threads;
+        final long burstPerThread = ratePerThread / 250; // 250 ms worth of burst
         for (int i = 0; i < ns.getInt("threads"); i++) {
             final int threadId = i;
             new Thread(new Runnable() {
@@ -35,7 +42,12 @@ public class LruGcTest {
                 public void run() {
                     try {
                         // TODO: hit ratio should be cmdline option
-                        new CacheChurner(threadId, sizePerCache, (float)0.50).run();
+                        new CacheChurner(
+                                threadId,
+                                sizePerCache,
+                                (float)0.50,
+                                new RateLimiter(ratePerThread, burstPerThread)
+                        ).run();
                     } catch (Exception e) {
                         e.printStackTrace(System.err);
                         System.exit(1);

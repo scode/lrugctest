@@ -5,6 +5,7 @@ java_binary(
     deps = [
         ":cachechurner",
         ":lrucache",
+        ":ratelimiter",
         "//:argparse4j",
     ],
 )
@@ -36,6 +37,7 @@ java_library(
     srcs = ["CacheChurner.java"],
     deps = [
         ":lrucache",
+        ":ratelimiter",
     ],
 )
 
@@ -44,6 +46,7 @@ java_library(
     srcs = ["CacheChurnerTest.java"],
     deps = [
         ":cachechurner",
+        ":ratelimiter",
         "//:junit_junit",
     ],
 )
