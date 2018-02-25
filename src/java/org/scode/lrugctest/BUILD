@@ -3,6 +3,7 @@ java_binary(
     srcs = ["LruGcTest.java"],
     main_class = "org.scode.lrugctest.LruGcTest",
     deps = [
+        "//:argparse4j",
     ],
 )
 

@@ -29,3 +29,11 @@ java_library(
         "@org_hamcrest_hamcrest_core//jar",
     ],
 )
+
+java_library(
+    name = "argparse4j",
+    visibility = ["//visibility:public"],
+    exports = [
+        "@net_sourcrforge_argparse4j_argparse4j//jar",
+    ],
+)
