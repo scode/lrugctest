@@ -31,6 +31,30 @@ For command line options:
 ./lrugctest --help
 ```
 
+### Combine with jHiccup
+
+The excellent [jHiccup](https://github.com/giltene/jHiccup) is great to combine with this test.
+
+```bash
+git clone https://github.com/giltene/jHiccup
+cd jHiccup
+mvn package
+```
+
+That should have build `target/jHiccup.jar`. You can run this test
+with jHiccup as such (substitute your acutal path):
+
+```bash
+_JAVA_OPTIONS='-javaagent:/path/to/jHiccup/target/jHiccup.jar="-d 20000 -i 1000"' LRUGCTEST_COLLECTOR=g1 ./lrugctest
+```
+
+You can then use `/path/to/jHiccupLogProcessor -i PATH_TO_LOG` et al
+(see [jHiccup](https://github.com/giltene/jHiccup)).
+
+The log is located in a hard-to-find place. To find where, `cat
+./lrugctest-bazel` and look at the diredctory it's entering before
+executing the tool. It will contain the jhiccup log files.
+
 ## What it does
 
 We generate an LRU cache of many small items and continuously churn
