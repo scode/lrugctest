@@ -22,3 +22,9 @@ LRUGCTEST_COLLECTOR=g1 ./lrugctest
 ```
 
 The following collectors are supported: throughput, cms, g1, shenandoah
+
+For command line options:
+
+```bash
+./lrugctest --help
+```

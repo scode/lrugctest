@@ -80,8 +80,4 @@ jvmopts () {
     jvmopt -Xss256k
 }
 
-#echo "$(jvmopts | tr '\n' ' ')"
-./lrugctest-bazel $(jvmopts)
-
-
-
+./lrugctest-bazel $(jvmopts) "${@}"
