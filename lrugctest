@@ -1,0 +1,87 @@
+#!/bin/bash
+
+set -e
+
+bazel run //src/main/java/org/scode/lrugctest/cmdline --script_path ./lrugctest-bazel
+
+jvmopt () {
+    echo "--jvm_flag=$*"
+}
+
+jvmopts () {
+    if [ -z "$LRUGCTEST_COLLECTOR" ]
+    then
+        LRUGCTEST_COLLECTOR="g1"
+    fi
+
+    jvmopt -XX:+UnlockExperimentalVMOptions
+    jvmopt -XX:+UnlockDiagnosticVMOptions
+    jvmopt -XX:+PrintGCApplicationConcurrentTime
+    jvmopt -XX:+PrintGCApplicationStoppedTime
+
+    #jvmopt -Xmaxf=50
+    #jvmopt -Xminf=30
+    #jvmopt -XX:GCTimeRatio=1
+    #jvmopt -XX:-UseAdaptiveSizePolicy
+    #jvmopt -XX:+PrintTenuringDistribution
+    #jvmopt -XX:+PrintCompilation
+    #jvmopt -XX:G1ConfidencePercent=100#
+    #jvmopt -XX:G1GCPercent=100
+    #jvmopt -XX:G1YoungGenSize=50m
+    #jvmopt -XX:NewSize=15m
+    #jvmopt -XX:MaxNewSize=15m
+    #jvmopt -XX:+PrintTenuringDistribution
+    #jvmopt -XX:+PrintHeapAtGC
+    #jvmopt -XX:+PrintHeapAtGCExtended
+
+    if [ "$LRUGCTEST_COLLECTOR" = "g1" ]
+    then
+        jvmopt -XX:+UseG1GC
+        jvmopt -XX:MaxGCPauseMillis=50
+        jvmopt -XX:GCPauseIntervalMillis=75
+        #jvmopt -XX:G1RSetSparseRegionEntries=500
+        #jvmopt -XX:+G1PrintParCleanupStats
+        #jvmopt -XX:G1PolicyVerbose=1
+        #jvmopt -XX:+PrintGCDetails
+        #jvmopt -XX:+G1PrintRegionLivenessInfo
+        #jvmopt -XX:+G1ParallelRSetUpdatingEnabled
+        #jvmopt -XX:+G1ParallelRSetScanningEnabled
+    elif [ "$LRUGCTEST_COLLECTOR" = "shenandoah" ]
+    then
+        jvmopt -XX:+UseShenandoahGC
+        jvmopt -XX:+PrintGCDetails
+    elif [ "$LRUGCTEST_COLLECTOR" = "cms" ]
+    then
+        jvmopt -XX:+UseConcMarkSweepGC
+        #jvmopt -XX:+CMSIncrementalMode
+        jvmopt -XX:+PrintGCDetails
+        jvmopt -XX:PrintFLSStatistics=5
+    elif [ "$LRUGCTEST_COLLECTOR" = "throughput" ]
+    then
+        echo >/dev/null #prevent syntax error
+    else
+        echo "unknown collector: $LRUGCTEST_COLLECTOR" >&2
+        exit 1
+    fi
+
+    jvmopt -XX:+CITime
+    jvmopt -Djava.net.preferIPv4Stack=true
+    jvmopt -XX:+PrintGC
+    jvmopt -XX:+PrintGCTimeStamps
+    jvmopt -XX:+PrintCommandLineFlags
+
+    if ! [ -z "$LRUGCTEST_LOGGC" ]
+    then
+        jvmopt "-Xloggc:$GCTEST_LOGGC"
+    fi
+
+    jvmopt -Xms2G
+    jvmopt -Xmx2G
+    jvmopt -Xss256k
+}
+
+#echo "$(jvmopts | tr '\n' ' ')"
+./lrugctest-bazel $(jvmopts)
+
+
+

@@ -2,7 +2,7 @@
 
 ## How to use
 
-## Get Bazel
+### Get Bazel
 
 If you don't have [bazel](https://bazel.build/) installed, install it:
 
@@ -15,8 +15,10 @@ Ubuntu users, see
 [instructions](https://docs.bazel.build/versions/master/install-ubuntu.html)
 (or just use [Nix](https://nixos.org/nix/)).
 
-## Run it
+### Run it
 
 ```bash
-bazel run //src/main/java/org/scode/lrugctest/cmdline
+LRUGCTEST_COLLECTOR=g1 ./lrugctest
 ```
+
+The following collectors are supported: throughput, cms, g1, shenandoah
