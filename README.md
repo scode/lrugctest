@@ -18,5 +18,5 @@ Ubuntu users, see
 ## Run it
 
 ```bash
-bazel run //src/java/org/scode/lrugctest:lrugctest
+bazel run //src/main/java/org/scode/lrugctest/cmdline
 ```
