@@ -1,11 +1,13 @@
-package org.scode.lrugctest;
+package org.scode.lrugctest.cmdline;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
+import org.scode.lrugctest.CacheChurner;
+import org.scode.lrugctest.RateLimiter;
 
-public class LruGcTest {
+public class Main {
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("LruGcTest").build()
                 .defaultHelp(true)
