@@ -7,7 +7,7 @@ import java.util.Random;
 import static org.junit.Assert.*;
 
 public class RateLimiterTest {
-    private static class TimeSource implements RateLimiter.ITimeSource {
+    private static class TimeSource implements ITimeSource {
         public long nanoTime = 0;
 
         @Override
@@ -19,7 +19,7 @@ public class RateLimiterTest {
     /**
      * A time soure which returns a fixed sequence of times.
      */
-    private static class ArrayTimeSource implements RateLimiter.ITimeSource {
+    private static class ArrayTimeSource implements ITimeSource {
         private final long[] nanoTimes;
         private int i = 0;
 
@@ -63,7 +63,7 @@ public class RateLimiterTest {
     @Test
     public void testWaitForNext() {
         // Rely very specifically on exactly when the time source is called.
-        RateLimiter.ITimeSource ts = new ArrayTimeSource(new long[] {
+        ITimeSource ts = new ArrayTimeSource(new long[] {
                 0L,           // Initial call in constructor.
                 0L,           // First call after running out.
                 1000000L,     // Call after sleeping.

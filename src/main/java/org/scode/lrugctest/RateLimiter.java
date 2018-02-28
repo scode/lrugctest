@@ -4,17 +4,6 @@ package org.scode.lrugctest;
  * Rate-limiter intended for thread-local rate limitation.
  */
 public class RateLimiter {
-    public interface ITimeSource {
-        long nanoTime();
-    }
-
-    public static class SystemTimeSource implements ITimeSource {
-        @Override
-        public long nanoTime() {
-            return System.nanoTime();
-        }
-    }
-
     private final long perSecond;
     private final long nanosPerHit;
     private final long maxBurst;
