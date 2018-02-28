@@ -8,23 +8,25 @@ public class RateLimiter {
     private final long nanosPerHit;
     private final long maxBurst;
     private final ITimeSource timeSource;
+    private final ISleeper sleeper;
 
     private long tokens = 0;
     private long lastRefillNanos = 0;
 
     public static RateLimiter unlimited() {
-        return new RateLimiter(1000000000L, 1000000000L, new SystemTimeSource());
+        return new RateLimiter(1000000000L, 1000000000L);
     }
 
     public RateLimiter(long perSecond, long maxBurst) {
-        this(perSecond, maxBurst, new SystemTimeSource());
+        this(perSecond, maxBurst, new SystemTimeSource(), new RealSleeper());
     }
 
-    public RateLimiter(long perSecond, long maxBurst, ITimeSource timeSource) {
+    public RateLimiter(long perSecond, long maxBurst, ITimeSource timeSource, ISleeper sleeper) {
         this.perSecond = perSecond;
         this.nanosPerHit = 1000000000 / (perSecond);
         this.maxBurst = maxBurst;
         this.timeSource = timeSource;
+        this.sleeper = sleeper;
         this.tokens = maxBurst;
         this.lastRefillNanos = timeSource.nanoTime();
     }
@@ -68,7 +70,7 @@ public class RateLimiter {
             amountSlept += sleepNeeded;
             long millis = sleepNeeded / 1000000L;
             try {
-                Thread.sleep(millis, (int) (sleepNeeded - (millis * 1000000L)));
+                this.sleeper.sleep(millis, (int) (sleepNeeded - (millis * 1000000L)));
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 throw new RuntimeException(e);

@@ -2,8 +2,6 @@ package org.scode.lrugctest;
 
 import org.junit.Test;
 
-import java.util.Random;
-
 import static org.junit.Assert.*;
 
 public class RateLimiterTest {
@@ -40,7 +38,7 @@ public class RateLimiterTest {
     @Test
     public void testMaxBurst() {
         TimeSource ts = new TimeSource();
-        RateLimiter rl = new RateLimiter(1000L, 100L, ts);
+        RateLimiter rl = new RateLimiter(1000L, 100L, ts, new MockSleeper());
 
         // On creation, we should have one full burst available to us.
         for (int i = 0; i < 100; i++) {
@@ -68,7 +66,8 @@ public class RateLimiterTest {
                 0L,           // First call after running out.
                 1000000L,     // Call after sleeping.
         });
-        RateLimiter rl = new RateLimiter(1000L, 1L, ts);
+        MockSleeper sleeper = new MockSleeper();
+        RateLimiter rl = new RateLimiter(1000L, 1L, ts, sleeper);
 
         // Consume burst buffer.
         assertEquals(0, rl.waitForNext());
@@ -78,11 +77,6 @@ public class RateLimiterTest {
         assertEquals(1000000, rl.waitForNext());
         long stopTime = System.nanoTime();
 
-        // The primary purpose of this test is to ensure we don't throw an exception,
-        // and that waitForNext() communicates that it slept. In order to properly test
-        // the sleeping behavior we should inject a mockable sleeper interface. But for now,
-        // this assertion doesn't hurt (it won't fail falsely) - but it cannot be relied upon
-        // (because it will succeed falsely).
-        assertTrue((stopTime - startTime) > 1000000);
+        assertEquals(1000000, sleeper.nanosSleptSoFar);
     }
 }
