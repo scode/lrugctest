@@ -2,8 +2,8 @@ java_library(
     name = "lrugctest",
     srcs = glob(["*.java"]),
     deps = [
-        "//src/main/java/org/scode/lrugctest",
         "//:junit_junit",
+        "//src/main/java/org/scode/lrugctest",
     ],
 )
 
@@ -25,6 +25,14 @@ java_test(
 
 java_test(
     name = "RateLimiterTest",
+    size = "small",
+    runtime_deps = [
+        ":lrugctest",
+    ],
+)
+
+java_test(
+    name = "HiccupDetectorTest",
     size = "small",
     runtime_deps = [
         ":lrugctest",

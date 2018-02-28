@@ -33,6 +33,23 @@ For command line options:
 ./lrugctest --help
 ```
 
+### Interpreting output
+
+Other than a mountain of JVM output, the built-in "hiccup detector" will print lines like:
+
+```
+HICCUP: 3449414ns (3ms)
+```
+
+This occurrs whenever a hiccup is detected longer than the specified
+threshold (`--hiccup-threshold-nanos`).
+
+For better hiccup detection see the next section. The built-in hiccup
+detector is trivial and there for convenience. It will simply sleep
+for a millisecond at a time and measure how long it slept. The delta
+between actual sleep time and requested sleep time is the hiccup
+length.
+
 ### Combine with jHiccup
 
 The excellent [jHiccup](https://github.com/giltene/jHiccup) is great to combine with this test.

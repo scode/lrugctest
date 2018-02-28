@@ -5,39 +5,10 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class RateLimiterTest {
-    private static class TimeSource implements ITimeSource {
-        public long nanoTime = 0;
-
-        @Override
-        public long nanoTime() {
-            return this.nanoTime;
-        }
-    }
-
-    /**
-     * A time soure which returns a fixed sequence of times.
-     */
-    private static class ArrayTimeSource implements ITimeSource {
-        private final long[] nanoTimes;
-        private int i = 0;
-
-        public ArrayTimeSource(long[] nanoTimes) {
-            this.nanoTimes = nanoTimes;
-        }
-
-        @Override
-        public long nanoTime() {
-            if (this.i >= this.nanoTimes.length) {
-                throw new RuntimeException("ran out of times");
-            }
-
-            return this.nanoTimes[this.i++];
-        }
-    }
 
     @Test
     public void testMaxBurst() {
-        TimeSource ts = new TimeSource();
+        SettableTimeSource ts = new SettableTimeSource();
         RateLimiter rl = new RateLimiter(1000L, 100L, ts, new MockSleeper());
 
         // On creation, we should have one full burst available to us.

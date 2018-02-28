@@ -5,6 +5,7 @@ import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 import org.scode.lrugctest.CacheChurner;
+import org.scode.lrugctest.HiccupDetector;
 import org.scode.lrugctest.RateLimiter;
 
 public class Main {
@@ -24,6 +25,10 @@ public class Main {
                 .type(Integer.class)
                 .setDefault(1000000)
                 .help("Number of cache checks per second.");
+        parser.addArgument("--hiccup-threshold-nanos")
+                .type(Integer.class)
+                .setDefault(1000000)
+                .help("Minimum length of a detected hiccup that will be reported.");
 
         Namespace ns = null;
         try {
@@ -32,6 +37,8 @@ public class Main {
             parser.handleError(e);
             System.exit(1);
         }
+
+        startHiccupDetector(ns.getInt("hiccup_threshold_nanos"));
 
         final int threads = ns.getInt("threads");
         final int sizePerCache = ns.getInt("size") / threads;
@@ -57,5 +64,20 @@ public class Main {
                 }
             }).start();
         }
+    }
+
+    private static final void startHiccupDetector(long thresholdNanos) {
+        final HiccupDetector hd = new HiccupDetector(thresholdNanos);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    hd.run();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    System.exit(1);
+                }
+            }
+        }).start();
     }
 }
