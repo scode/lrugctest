@@ -16,8 +16,10 @@ jvmopts () {
 
     jvmopt -XX:+UnlockExperimentalVMOptions
     jvmopt -XX:+UnlockDiagnosticVMOptions
-    jvmopt -XX:+PrintGCApplicationConcurrentTime
-    jvmopt -XX:+PrintGCApplicationStoppedTime
+    #jvmopt -XX:+PrintGCApplicationConcurrentTime
+    #jvmopt -XX:+PrintGCApplicationStoppedTime
+    #jvmopt -XX:+PrintSafepointStatistics
+    #jvmopt -XX:PrintSafepointStatisticsCount=1
 
     #jvmopt -Xmaxf=50
     #jvmopt -Xminf=30
@@ -66,14 +68,11 @@ jvmopts () {
 
     jvmopt -XX:+CITime
     jvmopt -Djava.net.preferIPv4Stack=true
-    jvmopt -XX:+PrintGC
-    jvmopt -XX:+PrintGCTimeStamps
     jvmopt -XX:+PrintCommandLineFlags
 
-    if ! [ -z "$LRUGCTEST_LOGGC" ]
-    then
-        jvmopt "-Xloggc:$GCTEST_LOGGC"
-    fi
+    #jvmopt -XX:+PrintGC
+    #jvmopt -XX:+PrintGCTimeStamps
+    jvmopt -Xlog:gc
 
     jvmopt -Xms2G
     jvmopt -Xmx2G
