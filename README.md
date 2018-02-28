@@ -20,7 +20,9 @@ Ubuntu users, see
 ### Run it
 
 ```bash
-LRUGCTEST_COLLECTOR=g1 ./lrugctest
+# Note: Both JAVABIN and LRUGCTEST_COLLECTOR are optional. JAVA_HOME is *not* honored.
+
+JAVABIN=/path/to/jdk/bin/java LRUGCTEST_COLLECTOR=g1 ./lrugctest
 ```
 
 The following collectors are supported: throughput, cms, g1, shenandoah
