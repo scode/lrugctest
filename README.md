@@ -99,3 +99,15 @@ sequentially. This means that garbage objects should be spread out
 across all regions (for garbage collectors that have them), rather
 than being lumped together in mostly-garbage regions. This should make
 the garbage more expensive to collect.
+
+## Examples
+
+Reasonably interesting starting point for a ~25 gb box with 4 cores
+and shenadoah:
+
+```bash
+_JAVA_OPTIONS="-Xms16G -Xmx16G" \
+JAVABIN=~/jdk/bin/java \
+LRUGCTEST_COLLECTOR=shenandoah \
+./lrugctest -t 4 --hiccup-threshold-nanos=10000000 -s 50000000 -r1000000
+```
