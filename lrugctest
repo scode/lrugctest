@@ -52,6 +52,10 @@ jvmopts () {
     then
         jvmopt -XX:+UseShenandoahGC
         jvmopt -XX:+PrintGCDetails
+    elif [ "$LRUGCTEST_COLLECTOR" = "z" ]
+    then
+        jvmopt -XX:+UseZGC
+        jvmopt -XX:+PrintGCDetails
     elif [ "$LRUGCTEST_COLLECTOR" = "cms" ]
     then
         jvmopt -XX:+UseConcMarkSweepGC
