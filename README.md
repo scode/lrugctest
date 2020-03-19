@@ -6,6 +6,8 @@ A garbage collector stress tester for the JVM.
 
 ### Get Bazelisk
 
+`bazelisk` must be in your `PATH`. If you have Go installed usually this can be done with:
+
 ```
 go get github.com/bazelbuild/bazelisk
 ```
