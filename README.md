@@ -4,25 +4,20 @@ A garbage collector stress tester for the JVM.
 
 ## How to use
 
-### Get Bazel
+### Get Bazelisk
 
-If you don't have [bazel](https://bazel.build/) installed, install it:
-
-```bash
-nix-env -i bazel   # using nix (linux/macOS)
-brew install bazel # using homebrew (macOS)
+```
+go get github.com/bazelbuild/bazelisk
 ```
 
-Ubuntu users, see
-[instructions](https://docs.bazel.build/versions/master/install-ubuntu.html)
-(or just use [Nix](https://nixos.org/nix/)).
+For more information see [bazelisk README](https://github.com/bazelbuild/bazelisk).
 
 ### Run it
 
 ```bash
-# Note: Both JAVABIN and LRUGCTEST_COLLECTOR are optional. JAVA_HOME is *not* honored.
+# Adjust JAVA_HOME accordingly.
 
-JAVABIN=/path/to/jdk/bin/java LRUGCTEST_COLLECTOR=g1 ./lrugctest
+JAVA_HOME=/usr/local/opt/openjdk/libexec/openjdk.jdk/Contents/Home LRUGCTEST_COLLECTOR=g1 ./lrugctest
 ```
 
 The following collectors are supported: throughput, cms, g1, shenandoah

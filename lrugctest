@@ -2,7 +2,7 @@
 
 set -e
 
-bazel run //src/main/java/org/scode/lrugctest/cmdline --script_path ./lrugctest-bazel
+bazelisk run //src/main/java/org/scode/lrugctest/cmdline
 
 jvmopt () {
     echo "--jvm_flag=$*"
