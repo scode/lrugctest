@@ -2,10 +2,8 @@
 
 set -e
 
-bazelisk run //src/main/java/org/scode/lrugctest/cmdline
-
 jvmopt () {
-    echo "--jvm_flag=$*"
+    echo "--jvmopt=$*"
 }
 
 jvmopts () {
@@ -83,4 +81,4 @@ jvmopts () {
     jvmopt -Xss256k
 }
 
-./lrugctest-bazel $(jvmopts) "${@}"
+bazelisk run //src/main/java/org/scode/lrugctest/cmdline $(jvmopts) -- "${@}"
