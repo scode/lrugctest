@@ -72,9 +72,7 @@ jvmopts () {
     jvmopt -Djava.net.preferIPv4Stack=true
     jvmopt -XX:+PrintCommandLineFlags
 
-    #jvmopt -XX:+PrintGC
-    #jvmopt -XX:+PrintGCTimeStamps
-    #jvmopt -Xlog:gc
+    jvmopt -Xlog:gc
 
     jvmopt -Xms2G
     jvmopt -Xmx2G
