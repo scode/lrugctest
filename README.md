@@ -22,7 +22,7 @@ For more information see [bazelisk README](https://github.com/bazelbuild/bazelis
 JAVA_HOME=/usr/local/opt/openjdk/libexec/openjdk.jdk/Contents/Home LRUGCTEST_COLLECTOR=g1 ./lrugctest
 ```
 
-The following collectors are supported: throughput, cms, g1, shenandoah
+The following collectors are supported: throughput, cms, g1, shenandoah, z
 
 For command line options:
 
