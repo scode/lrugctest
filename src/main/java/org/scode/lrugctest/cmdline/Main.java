@@ -29,6 +29,10 @@ public class Main {
                 .type(Integer.class)
                 .setDefault(1000000)
                 .help("Minimum length of a detected hiccup that will be reported.");
+        parser.addArgument("--hit-rate")
+                .type(Double.class) // should be Float.class, but triggers casting failure in getFloat()
+                .setDefault(0.5)
+                .help("Hit rate. Valid values are in range [0.0,1.0].");
 
         Namespace ns = null;
         try {
@@ -44,17 +48,17 @@ public class Main {
         final int sizePerCache = ns.getInt("size") / threads;
         final long ratePerThread = ns.getInt("rate") / (long)threads;
         final long burstPerThread = ratePerThread / 250; // 250 ms worth of burst
+        final double hitRate = ns.getDouble("hit_rate");
         for (int i = 0; i < ns.getInt("threads"); i++) {
             final int threadId = i;
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        // TODO: hit ratio should be cmdline option
                         new CacheChurner(
                                 threadId,
                                 sizePerCache,
-                                (float)0.50,
+                                (float)hitRate,
                                 new RateLimiter(ratePerThread, burstPerThread)
                         ).run();
                     } catch (Exception e) {
