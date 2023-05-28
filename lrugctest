@@ -14,10 +14,6 @@ jvmopts () {
 
     jvmopt -XX:+UnlockExperimentalVMOptions
     jvmopt -XX:+UnlockDiagnosticVMOptions
-    #jvmopt -XX:+PrintGCApplicationConcurrentTime
-    #jvmopt -XX:+PrintGCApplicationStoppedTime
-    #jvmopt -XX:+PrintSafepointStatistics
-    #jvmopt -XX:PrintSafepointStatisticsCount=1
 
     #jvmopt -Xmaxf=50
     #jvmopt -Xminf=30
@@ -42,23 +38,19 @@ jvmopts () {
         #jvmopt -XX:G1RSetSparseRegionEntries=500
         #jvmopt -XX:+G1PrintParCleanupStats
         #jvmopt -XX:G1PolicyVerbose=1
-        #jvmopt -XX:+PrintGCDetails
         #jvmopt -XX:+G1PrintRegionLivenessInfo
         #jvmopt -XX:+G1ParallelRSetUpdatingEnabled
         #jvmopt -XX:+G1ParallelRSetScanningEnabled
     elif [ "$LRUGCTEST_COLLECTOR" = "shenandoah" ]
     then
         jvmopt -XX:+UseShenandoahGC
-        #jvmopt -XX:+PrintGCDetails
     elif [ "$LRUGCTEST_COLLECTOR" = "z" ]
     then
         jvmopt -XX:+UseZGC
-        #jvmopt -XX:+PrintGCDetails
     elif [ "$LRUGCTEST_COLLECTOR" = "cms" ]
     then
         jvmopt -XX:+UseConcMarkSweepGC
         #jvmopt -XX:+CMSIncrementalMode
-        #jvmopt -XX:+PrintGCDetails
         #jvmopt -XX:PrintFLSStatistics=5
     elif [ "$LRUGCTEST_COLLECTOR" = "throughput" ]
     then
@@ -72,7 +64,7 @@ jvmopts () {
     jvmopt -Djava.net.preferIPv4Stack=true
     jvmopt -XX:+PrintCommandLineFlags
 
-    jvmopt -Xlog:gc
+    jvmopt -Xlog:gc,safepoint
 
     jvmopt -Xms2G
     jvmopt -Xmx2G
