@@ -100,11 +100,11 @@ the garbage more expensive to collect.
 ## Examples
 
 Reasonably interesting starting point for a ~25 gb box with 4 cores
-and shenadoah:
+and zgc:
 
 ```bash
 _JAVA_OPTIONS="-Xms16G -Xmx16G" \
 JAVABIN=~/jdk/bin/java \
-LRUGCTEST_COLLECTOR=shenandoah \
+LRUGCTEST_COLLECTOR=z \
 ./lrugctest -t 4 --hiccup-threshold-nanos=10000000 -s 50000000 -r1000000
 ```
