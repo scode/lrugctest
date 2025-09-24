@@ -6,7 +6,21 @@ jvmopt () {
     echo "--jvmopt=$*"
 }
 
-jvmopts () {
+java_bin () {
+    if [ -n "$JAVABIN" ]; then
+        echo "$JAVABIN"
+        return
+    fi
+
+    if [ -n "$JAVA_HOME" ]; then
+        echo "$JAVA_HOME/bin/java"
+        return
+    fi
+
+    echo "java"
+}
+
+build_jvmopts () {
     if [ -z "$LRUGCTEST_COLLECTOR" ]
     then
         LRUGCTEST_COLLECTOR="g1"
@@ -43,18 +57,13 @@ jvmopts () {
         #jvmopt -XX:+G1ParallelRSetScanningEnabled
     elif [ "$LRUGCTEST_COLLECTOR" = "shenandoah" ]
     then
-        jvmopt -XX:+UseShenandoahGC
+        jvmopt -XX:+UseShenandoahGC -XX:ShenandoahGCMode=generationa
     elif [ "$LRUGCTEST_COLLECTOR" = "z" ]
     then
         jvmopt -XX:+UseZGC
-    elif [ "$LRUGCTEST_COLLECTOR" = "cms" ]
-    then
-        jvmopt -XX:+UseConcMarkSweepGC
-        #jvmopt -XX:+CMSIncrementalMode
-        #jvmopt -XX:PrintFLSStatistics=5
     elif [ "$LRUGCTEST_COLLECTOR" = "throughput" ]
     then
-        echo >/dev/null #prevent syntax error
+        jvmopt -XX:+UseParallelGC
     else
         echo "unknown collector: $LRUGCTEST_COLLECTOR" >&2
         exit 1
@@ -71,4 +80,6 @@ jvmopts () {
     jvmopt -Xss256k
 }
 
-bazelisk run //src/main/java/org/scode/lrugctest/cmdline $(jvmopts) -- "${@}"
+JVMOPTS="$(build_jvmopts)" || exit 1
+
+bazelisk run //src/main/java/org/scode/lrugctest/cmdline ${JVMOPTS} -- "${@}"

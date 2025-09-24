@@ -25,7 +25,7 @@ The build targets Java 11, so ensure your `JAVA_HOME` points at JDK 11 or newer 
 JAVA_HOME=/usr/local/opt/openjdk/libexec/openjdk.jdk/Contents/Home LRUGCTEST_COLLECTOR=g1 ./lrugctest
 ```
 
-The following collectors are supported: throughput, cms, g1, shenandoah, z
+The following collectors are supported: throughput, g1, shenandoah, z
 
 For command line options:
 
