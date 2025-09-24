@@ -1,0 +1,20 @@
+module(
+    name = "lrugctest",
+    version = "0.0.0",
+    compatibility_level = 0,
+)
+
+bazel_dep(name = "rules_jvm_external", version = "6.3")
+
+maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
+maven.install(
+    name = "lrug_maven",
+    artifacts = [
+        "junit:junit:4.13.2",
+        "net.sourceforge.argparse4j:argparse4j:0.8.1",
+    ],
+    repositories = [
+        "https://repo1.maven.org/maven2",
+    ],
+)
+use_repo(maven, "lrug_maven")

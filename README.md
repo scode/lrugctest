@@ -9,10 +9,12 @@ A garbage collector stress tester for the JVM.
 `bazelisk` must be in your `PATH`. If you have Go installed usually this can be done with:
 
 ```
-go get github.com/bazelbuild/bazelisk
+go install github.com/bazelbuild/bazelisk@latest
 ```
 
 For more information see [bazelisk README](https://github.com/bazelbuild/bazelisk).
+
+This repository uses Bazel modules (Bzlmod), so Bazel 7+ will manage external dependencies defined in `MODULE.bazel`.
 
 ### Run it
 
