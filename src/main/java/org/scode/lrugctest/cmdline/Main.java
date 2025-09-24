@@ -8,6 +8,9 @@ import org.scode.lrugctest.CacheChurner;
 import org.scode.lrugctest.HiccupDetector;
 import org.scode.lrugctest.RateLimiter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class Main {
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newFor("LruGcTest").build()
@@ -33,6 +36,10 @@ public class Main {
                 .type(Double.class) // should be Float.class, but triggers casting failure in getFloat()
                 .setDefault(0.5)
                 .help("Hit rate. Valid values are in range [0.0,1.0].");
+        parser.addArgument("--time-limit-seconds")
+                .type(Integer.class)
+                .setDefault(0)
+                .help("Stop after this many seconds. 0 keeps running indefinitely.");
 
         Namespace ns = null;
         try {
@@ -42,37 +49,51 @@ public class Main {
             System.exit(1);
         }
 
-        startHiccupDetector(ns.getInt("hiccup_threshold_nanos"));
-
         final int threads = ns.getInt("threads");
+        final int timeLimitSeconds = ns.getInt("time_limit_seconds");
+        if (timeLimitSeconds < 0) {
+            System.err.println("--time-limit-seconds must be >= 0");
+            System.exit(1);
+        }
+
+        final HiccupDetector hiccupDetector = new HiccupDetector(ns.getInt("hiccup_threshold_nanos"));
+        final Thread hiccupThread = startHiccupDetector(hiccupDetector);
+
+        final List<CacheChurner> churners = new ArrayList<>(threads);
         final int sizePerCache = ns.getInt("size") / threads;
         final long ratePerThread = ns.getInt("rate") / (long)threads;
         final long burstPerThread = ratePerThread / 250; // 250 ms worth of burst
         final double hitRate = ns.getDouble("hit_rate");
-        for (int i = 0; i < ns.getInt("threads"); i++) {
+        for (int i = 0; i < threads; i++) {
             final int threadId = i;
-            new Thread(new Runnable() {
+            final CacheChurner churner = new CacheChurner(
+                    threadId,
+                    sizePerCache,
+                    (float)hitRate,
+                    new RateLimiter(ratePerThread, burstPerThread)
+            );
+            churners.add(churner);
+            Thread worker = new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        new CacheChurner(
-                                threadId,
-                                sizePerCache,
-                                (float)hitRate,
-                                new RateLimiter(ratePerThread, burstPerThread)
-                        ).run();
+                        churner.run();
                     } catch (Exception e) {
                         e.printStackTrace(System.err);
                         System.exit(1);
                     }
                 }
-            }).start();
+            }, "cache-churner-" + threadId);
+            worker.start();
+        }
+
+        if (timeLimitSeconds > 0) {
+            startTimeLimitWatcher(timeLimitSeconds, churners, hiccupDetector, hiccupThread);
         }
     }
 
-    private static final void startHiccupDetector(long thresholdNanos) {
-        final HiccupDetector hd = new HiccupDetector(thresholdNanos);
-        new Thread(new Runnable() {
+    private static Thread startHiccupDetector(final HiccupDetector hd) {
+        Thread thread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
@@ -82,6 +103,54 @@ public class Main {
                     System.exit(1);
                 }
             }
-        }).start();
+        }, "hiccup-detector");
+        thread.setDaemon(true);
+        thread.start();
+        return thread;
+    }
+
+    private static void startTimeLimitWatcher(
+            final int timeLimitSeconds,
+            final List<CacheChurner> churners,
+            final HiccupDetector hiccupDetector,
+            final Thread hiccupThread) {
+        Thread stopper = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Thread.sleep(timeLimitSeconds * 1000L);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+
+                System.err.println("Time limit reached (" + timeLimitSeconds + "s); stopping workload.");
+
+                for (CacheChurner churner : churners) {
+                    churner.stop();
+                }
+
+                for (CacheChurner churner : churners) {
+                    try {
+                        churner.awaitStop();
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
+
+                hiccupDetector.stop();
+                try {
+                    hiccupThread.join();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+
+                System.exit(0);
+            }
+        }, "time-limit");
+
+        stopper.setDaemon(true);
+        stopper.start();
     }
 }

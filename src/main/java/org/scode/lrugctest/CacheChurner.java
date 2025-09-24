@@ -54,6 +54,13 @@ public class CacheChurner implements Runnable {
         return this.stopRequested;
     }
 
+    /**
+     * Block until the churner has fully exited.
+     */
+    public void awaitStop() throws InterruptedException {
+        this.countDownLatch.await();
+    }
+
     /** NOT thread-safe. For tests. */
     long hits() {
         return this.hits;

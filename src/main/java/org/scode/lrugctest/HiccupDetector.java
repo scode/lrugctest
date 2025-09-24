@@ -4,6 +4,7 @@ public class HiccupDetector implements Runnable {
     private final long thresholdNanos;
     private final ITimeSource timeSource;
     private final ISleeper sleeper;
+    private volatile boolean stopRequested = false;
 
     private static final long ONE_MS = 1000000;
 
@@ -19,9 +20,13 @@ public class HiccupDetector implements Runnable {
 
     @Override
     public void run() {
-        while (true) {
+        while (!this.stopRequested) {
             oneIteration();
         }
+    }
+
+    public void stop() {
+        this.stopRequested = true;
     }
 
     /**
