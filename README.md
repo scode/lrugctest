@@ -15,6 +15,7 @@ go install github.com/bazelbuild/bazelisk@latest
 For more information see [bazelisk README](https://github.com/bazelbuild/bazelisk).
 
 This repository uses Bazel modules (Bzlmod), so Bazel 7+ will manage external dependencies defined in `MODULE.bazel`.
+The build targets Java 11, so ensure your `JAVA_HOME` points at JDK 11 or newer when running.
 
 ### Run it
 
