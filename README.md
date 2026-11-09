@@ -6,17 +6,18 @@ A garbage collector stress tester for the JVM.
 
 ### Prerequisites
 
-- `bazelisk` in your `PATH`. With Homebrew: `brew install bazelisk`. With Go: `go install
-  github.com/bazelbuild/bazelisk@latest`. See the [bazelisk README](https://github.com/bazelbuild/bazelisk) for
-  other options.
-- JDK 25 or newer to run the workload, for example `brew install openjdk`.
+The only prerequisite is a JDK 25 or newer, for example `brew install openjdk`. Nothing else needs installing: the
+Gradle wrapper (`./gradlew`) downloads the Gradle version pinned in `gradle/wrapper/gradle-wrapper.properties`, and
+Gradle downloads the JDK 25 it builds with. That makes the first run slow (about a minute on my machine, mostly
+downloads); later runs spend a few seconds checking that the build is up to date before the test starts. The JDK you
+point the script at only decides what the test runs on, not how it is built.
 
-Bazel itself (pinned in `.bazelversion`) compiles with a hermetic JDK 25 that it downloads on its own, so the JDK
-you have installed only matters for running the test, not for building it.
+To build and run the unit tests without running the workload, use `./gradlew build`. Run that way, the wrapper needs
+`JAVA_HOME` set or a `java` on your `PATH` to start on; `./lrugctest` takes care of that itself.
 
 ### Run it
 
-The script builds a deploy jar and runs it on the java found via `JAVABIN`, then `JAVA_HOME`, then `PATH`, so set one
+The script builds the project and runs it on the java found via `JAVABIN`, then `JAVA_HOME`, then `PATH`, so set one
 of those to pick the JDK under test. It refuses to run on anything older than JDK 25.
 
 On Linux, Homebrew's JDK is on your `PATH` after `brew install openjdk`, so this is enough:
