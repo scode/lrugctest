@@ -1,6 +1,0 @@
-# Compile with a hermetic JDK 25 and emit Java 25 bytecode. This only governs building and `bazel test`; the
-# `lrugctest` script runs the workload on whatever JDK the user selects, which must therefore be 25 or newer.
-build --java_language_version=25
-build --java_runtime_version=remotejdk_25
-build --tool_java_language_version=25
-build --tool_java_runtime_version=remotejdk_25

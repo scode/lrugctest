@@ -1,10 +1,10 @@
 #!/bin/bash
 #
-# Build the LRU GC stress test with Bazel and run it on a user-chosen JDK with collector-specific flags.
+# Build the LRU GC stress test with Gradle and run it on a user-chosen JDK with collector-specific flags.
 #
-# The workload deliberately does not run under `bazel run`: that would use Bazel's hermetic runtime (see .bazelrc)
-# and silently ignore JAVA_HOME, which defeats the point of a tool for comparing collectors across JDK builds.
-# Instead we build the self-contained deploy jar and launch it ourselves.
+# The workload deliberately does not run under `./gradlew run`: that would run it on the build's toolchain JDK and
+# ignore JAVA_HOME, which defeats the point of a tool for comparing collectors across JDK builds. Instead Gradle only
+# assembles the classpath (installDist) and the script launches the JVM itself.
 #
 # Environment:
 #   LRUGCTEST_COLLECTOR  g1 (default), z, shenandoah, or throughput.
@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-# The build emits Java 25 bytecode, and the collector modes below (generational-only ZGC, generational Shenandoah as
+# The build emits Java 25 bytecode (the toolchain in app/build.gradle.kts), and the collector modes below (generational-only ZGC, generational Shenandoah as
 # a product mode) assume JDK 25 or newer.
 MIN_JAVA_MAJOR=25
 
@@ -38,7 +38,11 @@ script_dir () {
 }
 
 SCRIPT_DIR="$(script_dir)"
-DEPLOY_JAR_TARGET="//src/main/java/org/scode/lrugctest/cmdline:cmdline_deploy.jar"
+
+# Where `installDist` puts the application jar and its dependencies, and the entry point it would otherwise write into
+# a start script. MAIN_CLASS must match `application.mainClass` in app/build.gradle.kts.
+INSTALL_LIB="$SCRIPT_DIR/app/build/install/app/lib"
+MAIN_CLASS="org.scode.lrugctest.cmdline.Main"
 
 java_bin () {
     if [ -n "${JAVABIN:-}" ]; then
@@ -50,19 +54,25 @@ java_bin () {
     fi
 }
 
-# Prints the JDK's feature release number, e.g. 25. Pre-9 JDKs report "1.8" and come out as 1, which still fails the
-# minimum-version check as intended.
+# Prints the JVM's system properties as reported by `-XshowSettings:properties`, from which the version check and the
+# Gradle wrapper's JAVA_HOME are both read.
 #
 # The probe JVM runs without the user's JVM option variables. Those are meant for the real run: flags that need our
 # unlock options would make the probe fail, and a -javaagent (such as jHiccup) would otherwise start twice. If the
 # probe fails anyway, its output goes to stderr so the user sees the JVM's own error.
-java_major () {
+java_settings () {
     local out
     if ! out="$(env -u _JAVA_OPTIONS -u JAVA_TOOL_OPTIONS -u JDK_JAVA_OPTIONS "$1" -XshowSettings:properties -version 2>&1)"; then
         echo "$out" >&2
         return 1
     fi
-    echo "$out" | awk -F' = ' '/^ *java\.specification\.version = / { split($2, v, "."); print v[1] }'
+    echo "$out"
+}
+
+# Prints the value of one property, matched by exact name, from java_settings output on stdin. Reads all of its input
+# rather than stopping at the match, so the producer never sees a closed pipe under pipefail.
+java_property () {
+    awk -F' = ' -v key="$1" '{ k = $1; sub(/^ +/, "", k) } k == key && !found { print $2; found = 1 }'
 }
 
 # Collector selection plus the flags shared across collectors. Appends to the JVMOPTS array.
@@ -106,7 +116,9 @@ build_jvmopts () {
 }
 
 JAVA="$(java_bin)"
-JAVA_MAJOR="$(java_major "$JAVA" || true)"
+JAVA_SETTINGS="$(java_settings "$JAVA" || true)"
+# Feature release number, e.g. 25. Pre-9 JDKs report "1.8" and come out as 1, which still fails the check as intended.
+JAVA_MAJOR="$(echo "$JAVA_SETTINGS" | java_property java.specification.version | cut -d. -f1)"
 if [ -z "$JAVA_MAJOR" ]; then
     echo "could not determine the version of $JAVA; set JAVA_HOME or JAVABIN to a working JDK" >&2
     exit 1
@@ -119,31 +131,24 @@ fi
 JVMOPTS=()
 build_jvmopts
 
-# Runs bazelisk in the workspace, which Bazel requires, while the JVM later runs in the caller's directory so output
-# files such as jHiccup logs land where the user expects them.
+# Runs the Gradle wrapper in the project directory, while the JVM later runs in the caller's directory so output files
+# such as jHiccup logs land where the user expects them.
 #
-# The JDK-selecting variables are removed because they are aimed at the workload, not at Bazel:
+# The JVM option variables are removed because they are aimed at the workload, not at Gradle: they would reach the
+# Gradle client and daemon, where a flag that needs our unlock options makes Gradle fail to start and a -javaagent such
+# as jHiccup would load into the build.
 #
-# - The Bazel client turns JAVA_HOME into a server startup option, so every switch of the JDK under test would restart
-#   the Bazel server and refetch its local_jdk repository, which costs tens of seconds and kills any concurrent build.
-#   The build uses its own hermetic JDK (.bazelrc), so it has no use for JAVA_HOME anyway.
-# - The JVM option variables reach Bazel's own JVMs (the Maven resolver, javac workers). A flag that needs our unlock
-#   options makes the dependency fetch fail outright, and a -javaagent such as jHiccup would load into the build.
-bazel_ws () {
+# The wrapper client needs a JDK to start on, which it takes from JAVA_HOME or else from `java` on PATH. When the user
+# picked the JDK with JAVABIN alone, PATH may have no usable java (on macOS it is often a stub), so the wrapper gets
+# the selected JDK's home instead. Either way the daemon that does the actual build runs on the JDK pinned in
+# gradle/gradle-daemon-jvm.properties, so this only affects the short-lived client.
+GRADLE_JAVA_HOME="${JAVA_HOME:-$(echo "$JAVA_SETTINGS" | java_property java.home)}"
+gradle_ws () {
     (CDPATH= cd -- "$SCRIPT_DIR" &&
-        env -u JAVA_HOME -u _JAVA_OPTIONS -u JAVA_TOOL_OPTIONS -u JDK_JAVA_OPTIONS bazelisk "$@")
+        env -u _JAVA_OPTIONS -u JAVA_TOOL_OPTIONS -u JDK_JAVA_OPTIONS JAVA_HOME="$GRADLE_JAVA_HOME" ./gradlew "$@")
 }
 
-bazel_ws build "$DEPLOY_JAR_TARGET" >&2
+gradle_ws --quiet :app:installDist >&2
 
-# cquery prints the jar's path relative to the execution root rather than the workspace, so it is joined with that
-# root instead of relying on the bazel-out convenience symlink, which a bazelrc may rename or disable.
-QUIET=(--noshow_progress --ui_event_filters=-info)
-EXEC_ROOT="$(bazel_ws info "${QUIET[@]}" execution_root)"
-DEPLOY_JAR="$(bazel_ws cquery "${QUIET[@]}" --output=files "$DEPLOY_JAR_TARGET")"
-if [ -z "$EXEC_ROOT" ] || [ -z "$DEPLOY_JAR" ] || [ ! -f "$EXEC_ROOT/$DEPLOY_JAR" ]; then
-    echo "could not locate the built deploy jar (execution root '$EXEC_ROOT', jar '$DEPLOY_JAR')" >&2
-    exit 1
-fi
-
-exec "$JAVA" "${JVMOPTS[@]}" -jar "$EXEC_ROOT/$DEPLOY_JAR" "$@"
+# The quoted `lib/*` is a JVM classpath wildcard (every jar in the directory), not a shell glob.
+exec "$JAVA" "${JVMOPTS[@]}" -cp "$INSTALL_LIB/*" "$MAIN_CLASS" "$@"
