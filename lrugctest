@@ -1,85 +1,149 @@
 #!/bin/bash
+#
+# Build the LRU GC stress test with Bazel and run it on a user-chosen JDK with collector-specific flags.
+#
+# The workload deliberately does not run under `bazel run`: that would use Bazel's hermetic runtime (see .bazelrc)
+# and silently ignore JAVA_HOME, which defeats the point of a tool for comparing collectors across JDK builds.
+# Instead we build the self-contained deploy jar and launch it ourselves.
+#
+# Environment:
+#   LRUGCTEST_COLLECTOR  g1 (default), z, shenandoah, or throughput.
+#   JAVABIN              Explicit path to the java binary. Wins over JAVA_HOME.
+#   JAVA_HOME            JDK to use when JAVABIN is unset. Falls back to `java` on PATH.
+#   _JAVA_OPTIONS        Read by the JVM itself and applied after our flags, so it can override them. To change the
+#                        heap, override both -Xms and -Xmx; a lone -Xmx below our -Xms2G makes the JVM refuse to start.
+#
+# All arguments are passed through to the workload; see `./lrugctest --help`.
 
-set -e
+set -euo pipefail
 
-jvmopt () {
-    echo "--jvmopt=$*"
+# The build emits Java 25 bytecode, and the collector modes below (generational-only ZGC, generational Shenandoah as
+# a product mode) assume JDK 25 or newer.
+MIN_JAVA_MAJOR=25
+
+# Resolve symlinks by hand so the script works when linked into a bin directory. `readlink -f` would do this in one
+# step but is missing on older macOS. CDPATH is cleared because `cd` into a CDPATH match prints the directory, which
+# would end up in the captured path.
+script_dir () {
+    local src="${BASH_SOURCE[0]}" dir
+    while [ -L "$src" ]; do
+        dir="$(CDPATH= cd -- "$(dirname -- "$src")" >/dev/null && pwd)"
+        src="$(readlink -- "$src")"
+        case "$src" in
+            /*) ;;
+            *) src="$dir/$src" ;;
+        esac
+    done
+    CDPATH= cd -- "$(dirname -- "$src")" >/dev/null && pwd
 }
+
+SCRIPT_DIR="$(script_dir)"
+DEPLOY_JAR_TARGET="//src/main/java/org/scode/lrugctest/cmdline:cmdline_deploy.jar"
 
 java_bin () {
-    if [ -n "$JAVABIN" ]; then
+    if [ -n "${JAVABIN:-}" ]; then
         echo "$JAVABIN"
-        return
-    fi
-
-    if [ -n "$JAVA_HOME" ]; then
+    elif [ -n "${JAVA_HOME:-}" ]; then
         echo "$JAVA_HOME/bin/java"
-        return
-    fi
-
-    echo "java"
-}
-
-build_jvmopts () {
-    if [ -z "$LRUGCTEST_COLLECTOR" ]
-    then
-        LRUGCTEST_COLLECTOR="g1"
-    fi
-
-    jvmopt -XX:+UnlockExperimentalVMOptions
-    jvmopt -XX:+UnlockDiagnosticVMOptions
-
-    #jvmopt -Xmaxf=50
-    #jvmopt -Xminf=30
-    #jvmopt -XX:GCTimeRatio=1
-    #jvmopt -XX:-UseAdaptiveSizePolicy
-    #jvmopt -XX:+PrintTenuringDistribution
-    #jvmopt -XX:+PrintCompilation
-    #jvmopt -XX:G1ConfidencePercent=100#
-    #jvmopt -XX:G1GCPercent=100
-    #jvmopt -XX:G1YoungGenSize=50m
-    #jvmopt -XX:NewSize=15m
-    #jvmopt -XX:MaxNewSize=15m
-    #jvmopt -XX:+PrintTenuringDistribution
-    #jvmopt -XX:+PrintHeapAtGC
-    #jvmopt -XX:+PrintHeapAtGCExtended
-
-    if [ "$LRUGCTEST_COLLECTOR" = "g1" ]
-    then
-        jvmopt -XX:+UseG1GC
-        jvmopt -XX:MaxGCPauseMillis=50
-        jvmopt -XX:GCPauseIntervalMillis=75
-        #jvmopt -XX:G1RSetSparseRegionEntries=500
-        #jvmopt -XX:+G1PrintParCleanupStats
-        #jvmopt -XX:G1PolicyVerbose=1
-        #jvmopt -XX:+G1PrintRegionLivenessInfo
-        #jvmopt -XX:+G1ParallelRSetUpdatingEnabled
-        #jvmopt -XX:+G1ParallelRSetScanningEnabled
-    elif [ "$LRUGCTEST_COLLECTOR" = "shenandoah" ]
-    then
-        jvmopt -XX:+UseShenandoahGC -XX:ShenandoahGCMode=generationa
-    elif [ "$LRUGCTEST_COLLECTOR" = "z" ]
-    then
-        jvmopt -XX:+UseZGC
-    elif [ "$LRUGCTEST_COLLECTOR" = "throughput" ]
-    then
-        jvmopt -XX:+UseParallelGC
     else
-        echo "unknown collector: $LRUGCTEST_COLLECTOR" >&2
-        exit 1
+        echo "java"
     fi
-
-    jvmopt -XX:+CITime
-    jvmopt -Djava.net.preferIPv4Stack=true
-    jvmopt -XX:+PrintCommandLineFlags
-
-    jvmopt -Xlog:gc,safepoint
-
-    jvmopt -Xms2G
-    jvmopt -Xmx2G
-    jvmopt -Xss256k
 }
 
-JVMOPTS="$(build_jvmopts)" || exit 1
+# Prints the JDK's feature release number, e.g. 25. Pre-9 JDKs report "1.8" and come out as 1, which still fails the
+# minimum-version check as intended.
+#
+# The probe JVM runs without the user's JVM option variables. Those are meant for the real run: flags that need our
+# unlock options would make the probe fail, and a -javaagent (such as jHiccup) would otherwise start twice. If the
+# probe fails anyway, its output goes to stderr so the user sees the JVM's own error.
+java_major () {
+    local out
+    if ! out="$(env -u _JAVA_OPTIONS -u JAVA_TOOL_OPTIONS -u JDK_JAVA_OPTIONS "$1" -XshowSettings:properties -version 2>&1)"; then
+        echo "$out" >&2
+        return 1
+    fi
+    echo "$out" | awk -F' = ' '/^ *java\.specification\.version = / { split($2, v, "."); print v[1] }'
+}
 
-bazelisk run //src/main/java/org/scode/lrugctest/cmdline ${JVMOPTS} -- "${@}"
+# Collector selection plus the flags shared across collectors. Appends to the JVMOPTS array.
+build_jvmopts () {
+    local collector="${LRUGCTEST_COLLECTOR:-g1}"
+
+    # Lets users pass experimental or diagnostic flags through _JAVA_OPTIONS without editing this script.
+    JVMOPTS+=(-XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions)
+
+    case "$collector" in
+        g1)
+            JVMOPTS+=(-XX:+UseG1GC -XX:MaxGCPauseMillis=50 -XX:GCPauseIntervalMillis=75)
+            ;;
+        z)
+            # ZGC is generational-only since JDK 24 (JEP 490), so no mode flag is needed or accepted.
+            JVMOPTS+=(-XX:+UseZGC)
+            ;;
+        shenandoah)
+            # Generational mode is a product feature since JDK 25 (JEP 521). An LRU workload is hostile to
+            # generational collection, which is exactly what this test wants to exercise.
+            JVMOPTS+=(-XX:+UseShenandoahGC -XX:ShenandoahGCMode=generational)
+            ;;
+        throughput)
+            JVMOPTS+=(-XX:+UseParallelGC)
+            ;;
+        *)
+            echo "unknown collector: $collector (expected g1, z, shenandoah, or throughput)" >&2
+            exit 1
+            ;;
+    esac
+
+    JVMOPTS+=(
+        -XX:+CITime
+        -XX:+PrintCommandLineFlags
+        -Xlog:gc,safepoint
+        -Djava.net.preferIPv4Stack=true
+        -Xms2G
+        -Xmx2G
+        -Xss256k
+    )
+}
+
+JAVA="$(java_bin)"
+JAVA_MAJOR="$(java_major "$JAVA" || true)"
+if [ -z "$JAVA_MAJOR" ]; then
+    echo "could not determine the version of $JAVA; set JAVA_HOME or JAVABIN to a working JDK" >&2
+    exit 1
+fi
+if [ "$JAVA_MAJOR" -lt "$MIN_JAVA_MAJOR" ]; then
+    echo "$JAVA is JDK $JAVA_MAJOR; JDK $MIN_JAVA_MAJOR or newer is required (set JAVA_HOME or JAVABIN)" >&2
+    exit 1
+fi
+
+JVMOPTS=()
+build_jvmopts
+
+# Runs bazelisk in the workspace, which Bazel requires, while the JVM later runs in the caller's directory so output
+# files such as jHiccup logs land where the user expects them.
+#
+# The JDK-selecting variables are removed because they are aimed at the workload, not at Bazel:
+#
+# - The Bazel client turns JAVA_HOME into a server startup option, so every switch of the JDK under test would restart
+#   the Bazel server and refetch its local_jdk repository, which costs tens of seconds and kills any concurrent build.
+#   The build uses its own hermetic JDK (.bazelrc), so it has no use for JAVA_HOME anyway.
+# - The JVM option variables reach Bazel's own JVMs (the Maven resolver, javac workers). A flag that needs our unlock
+#   options makes the dependency fetch fail outright, and a -javaagent such as jHiccup would load into the build.
+bazel_ws () {
+    (CDPATH= cd -- "$SCRIPT_DIR" &&
+        env -u JAVA_HOME -u _JAVA_OPTIONS -u JAVA_TOOL_OPTIONS -u JDK_JAVA_OPTIONS bazelisk "$@")
+}
+
+bazel_ws build "$DEPLOY_JAR_TARGET" >&2
+
+# cquery prints the jar's path relative to the execution root rather than the workspace, so it is joined with that
+# root instead of relying on the bazel-out convenience symlink, which a bazelrc may rename or disable.
+QUIET=(--noshow_progress --ui_event_filters=-info)
+EXEC_ROOT="$(bazel_ws info "${QUIET[@]}" execution_root)"
+DEPLOY_JAR="$(bazel_ws cquery "${QUIET[@]}" --output=files "$DEPLOY_JAR_TARGET")"
+if [ -z "$EXEC_ROOT" ] || [ -z "$DEPLOY_JAR" ] || [ ! -f "$EXEC_ROOT/$DEPLOY_JAR" ]; then
+    echo "could not locate the built deploy jar (execution root '$EXEC_ROOT', jar '$DEPLOY_JAR')" >&2
+    exit 1
+fi
+
+exec "$JAVA" "${JVMOPTS[@]}" -jar "$EXEC_ROOT/$DEPLOY_JAR" "$@"

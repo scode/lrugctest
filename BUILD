@@ -1,8 +1,7 @@
-genrule(
-    name = "hello",
-    outs = ["hello_world.txt"],
-    cmd = "echo Hello World > $@",
-)
+load("@rules_java//java:java_library.bzl", "java_library")
+
+# Stable local aliases for the Maven artifacts, so packages depend on //:junit_junit rather than on the generated
+# repository's label scheme.
 
 java_library(
     name = "junit_junit",

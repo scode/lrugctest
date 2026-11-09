@@ -1,17 +1,18 @@
 module(
     name = "lrugctest",
     version = "0.0.0",
-    compatibility_level = 0,
 )
 
-bazel_dep(name = "rules_jvm_external", version = "6.3")
+# Bazel 9 no longer ships the Java rules natively, so BUILD files load them from rules_java.
+bazel_dep(name = "rules_java", version = "9.9.0")
+bazel_dep(name = "rules_jvm_external", version = "7.2")
 
 maven = use_extension("@rules_jvm_external//:extensions.bzl", "maven")
 maven.install(
     name = "lrug_maven",
     artifacts = [
         "junit:junit:4.13.2",
-        "net.sourceforge.argparse4j:argparse4j:0.8.1",
+        "net.sourceforge.argparse4j:argparse4j:0.9.0",
     ],
     repositories = [
         "https://repo1.maven.org/maven2",
