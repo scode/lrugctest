@@ -20,18 +20,28 @@ To build and run the unit tests without running the workload, use `./gradlew bui
 The script builds the project and runs it on the java found via `JAVABIN`, then `JAVA_HOME`, then `PATH`, so set one
 of those to pick the JDK under test. It refuses to run on anything older than JDK 25.
 
-On Linux, Homebrew's JDK is on your `PATH` after `brew install openjdk`, so this is enough:
+These run ZGC for a minute on Homebrew's JDK. They set `JAVA_HOME` explicitly so they do not depend on which `java`
+happens to come first on your `PATH`.
+
+On Ubuntu (or other Linux) with Homebrew:
 
 ```bash
-LRUGCTEST_COLLECTOR=z ./lrugctest
+brew install openjdk
+JAVA_HOME="$(brew --prefix openjdk)/libexec" LRUGCTEST_COLLECTOR=z ./lrugctest --time-limit-seconds 60
 ```
 
-NOTE: On macOS, Homebrew's `openjdk` is keg-only, so it is not on your `PATH` and `/usr/bin/java` is a stub that
-fails unless some other JDK is installed. Point `JAVA_HOME` at it instead:
+On macOS with Homebrew:
 
 ```bash
-JAVA_HOME=$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home LRUGCTEST_COLLECTOR=z ./lrugctest
+brew install openjdk
+JAVA_HOME="$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home" LRUGCTEST_COLLECTOR=z ./lrugctest --time-limit-seconds 60
 ```
+
+The paths differ because Homebrew installs the JDK as a macOS bundle there. On macOS the explicit `JAVA_HOME` is
+required rather than just tidy: Homebrew's `openjdk` is keg-only, so it is not on your `PATH`, and `/usr/bin/java` is
+a stub that fails unless some other JDK is installed.
+
+Leave out `--time-limit-seconds` to run until you stop it.
 
 `LRUGCTEST_COLLECTOR` selects one of:
 
