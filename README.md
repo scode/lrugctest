@@ -4,28 +4,44 @@ A garbage collector stress tester for the JVM.
 
 ## How to use
 
-### Get Bazelisk
+### Prerequisites
 
-`bazelisk` must be in your `PATH`. If you have Go installed usually this can be done with:
+- `bazelisk` in your `PATH`. With Homebrew: `brew install bazelisk`. With Go: `go install
+  github.com/bazelbuild/bazelisk@latest`. See the [bazelisk README](https://github.com/bazelbuild/bazelisk) for
+  other options.
+- JDK 25 or newer to run the workload, for example `brew install openjdk`.
 
-```
-go install github.com/bazelbuild/bazelisk@latest
-```
-
-For more information see [bazelisk README](https://github.com/bazelbuild/bazelisk).
-
-This repository uses Bazel modules (Bzlmod), so Bazel 7+ will manage external dependencies defined in `MODULE.bazel`.
-The build targets Java 11, so ensure your `JAVA_HOME` points at JDK 11 or newer when running.
+Bazel itself (pinned in `.bazelversion`) compiles with a hermetic JDK 25 that it downloads on its own, so the JDK
+you have installed only matters for running the test, not for building it.
 
 ### Run it
 
-```bash
-# Adjust JAVA_HOME accordingly.
+The script builds a deploy jar and runs it on the java found via `JAVABIN`, then `JAVA_HOME`, then `PATH`, so set one
+of those to pick the JDK under test. It refuses to run on anything older than JDK 25.
 
-JAVA_HOME=/usr/local/opt/openjdk/libexec/openjdk.jdk/Contents/Home LRUGCTEST_COLLECTOR=g1 ./lrugctest
+On Linux, Homebrew's JDK is on your `PATH` after `brew install openjdk`, so this is enough:
+
+```bash
+LRUGCTEST_COLLECTOR=z ./lrugctest
 ```
 
-The following collectors are supported: throughput, g1, shenandoah, z
+NOTE: On macOS, Homebrew's `openjdk` is keg-only, so it is not on your `PATH` and `/usr/bin/java` is a stub that
+fails unless some other JDK is installed. Point `JAVA_HOME` at it instead:
+
+```bash
+JAVA_HOME=$(brew --prefix openjdk)/libexec/openjdk.jdk/Contents/Home LRUGCTEST_COLLECTOR=z ./lrugctest
+```
+
+`LRUGCTEST_COLLECTOR` selects one of:
+
+- `g1` (the default)
+- `z` (ZGC, which is generational-only as of JDK 24)
+- `shenandoah` (in generational mode)
+- `throughput` (Parallel GC)
+
+The heap is fixed at 2 GB. Use `_JAVA_OPTIONS` to override that or to add other JVM flags, since the JVM applies it
+after the flags the script passes. To change the heap, set both `-Xms` and `-Xmx` (as in the example at the end);
+an `-Xmx` alone below 2 GB conflicts with the script's `-Xms2G` and the JVM refuses to start.
 
 For command line options:
 
@@ -41,7 +57,7 @@ Other than a mountain of JVM output, the built-in "hiccup detector" will print l
 HICCUP: 3449414ns (3ms)
 ```
 
-This occurrs whenever a hiccup is detected longer than the specified
+This occurs whenever a hiccup is detected longer than the specified
 threshold (`--hiccup-threshold-nanos`).
 
 For better hiccup detection see the next section. The built-in hiccup
@@ -60,19 +76,17 @@ cd jHiccup
 mvn package
 ```
 
-That should have build `target/jHiccup.jar`. You can run this test
-with jHiccup as such (substitute your acutal path):
+That should have built `target/jHiccup.jar`. You can run this test
+with jHiccup as such (substitute your actual path):
 
 ```bash
 _JAVA_OPTIONS='-javaagent:/path/to/jHiccup/target/jHiccup.jar="-d 20000 -i 1000"' LRUGCTEST_COLLECTOR=g1 ./lrugctest
 ```
 
-You can then use `/path/to/jHiccupLogProcessor -i PATH_TO_LOG` et al
-(see [jHiccup](https://github.com/giltene/jHiccup)).
-
-The log is located in a hard-to-find place. To find where, `cat
-./lrugctest-bazel` and look at the diredctory it's entering before
-executing the tool. It will contain the jhiccup log files.
+The JVM runs in the directory you invoked `./lrugctest` from, so that
+is where the jHiccup log files end up. You can then use
+`/path/to/jHiccupLogProcessor -i PATH_TO_LOG` et al (see
+[jHiccup](https://github.com/giltene/jHiccup)).
 
 ## What it does
 
